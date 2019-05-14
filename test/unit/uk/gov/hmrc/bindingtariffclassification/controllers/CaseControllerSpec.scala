@@ -93,7 +93,6 @@ class CaseControllerSpec extends UnitSpec with WithFakeApplication with MockitoS
     "return 201 when the case has been created successfully" in {
       when(caseService.nextCaseReference).thenReturn(successful("1"))
       when(caseService.insert(any[Case])).thenReturn(successful(c1))
-      when(caseService.addInitialSampleStatusIfExists(any[Case])).thenReturn(Future.successful(():Unit))
 
       val result = await(controller.create()(fakeRequest.withBody(toJson(newCase))))
 

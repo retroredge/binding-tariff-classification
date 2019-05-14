@@ -33,16 +33,19 @@ class CaseService @Inject()(appConfig: AppConfig,
                             sequenceRepository: SequenceRepository,
                             eventService: EventService) {
 
+  val TRADER_OP_ID = "-1"
+
   def insert(c: Case): Future[Case] = {
     caseRepository.insert(c)
+    addInitialSampleStatusIfExists(c)
   }
 
-  def addInitialSampleStatusIfExists(c: Case): Future[Unit] = {
+  private def addInitialSampleStatusIfExists(c: Case): Future[Case] = {
     if (c.sampleStatus.nonEmpty) {
       val details = SampleStatusChange(None, c.sampleStatus, None)
-      eventService.insert(Event(UUID.randomUUID().toString, details, Operator("-1",Some(c.application.holder.businessName)), c.reference, Instant.now()))
+      eventService.insert(Event(UUID.randomUUID().toString, details, Operator(TRADER_OP_ID,Some(c.application.holder.businessName)), c.reference, Instant.now()))
     }
-    Future.successful((): Unit)
+    Future.successful(c)
   }
 
   def nextCaseReference: Future[String] = {

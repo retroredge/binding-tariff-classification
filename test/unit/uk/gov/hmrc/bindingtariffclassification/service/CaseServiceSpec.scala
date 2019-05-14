@@ -16,6 +16,7 @@
 
 package uk.gov.hmrc.bindingtariffclassification.service
 
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.mockito.MockitoSugar
@@ -25,6 +26,7 @@ import uk.gov.hmrc.bindingtariffclassification.repository.{CaseRepository, Seque
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.test.UnitSpec
 
+import scala.concurrent.Future
 import scala.concurrent.Future.successful
 
 class CaseServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEach {
@@ -73,8 +75,28 @@ class CaseServiceSpec extends UnitSpec with MockitoSugar with BeforeAndAfterEach
     "return the case after it is inserted in the database collection" in {
       when(sequenceRepository.incrementAndGetByName("case")).thenReturn(successful(Sequence("case", 0)))
       when(caseRepository.insert(c1)).thenReturn(successful(c1Saved))
+      when(c1.sampleStatus).thenReturn(None)
+      //when(service.addInitialSampleStatusIfExists(any[Case])).thenReturn(Future.successful(():Unit))
 
       await(service.insert(c1)) shouldBe c1Saved
+    }
+
+    "call eventService with new event if samplestatus was set" in {
+      when(sequenceRepository.incrementAndGetByName("case")).thenReturn(successful(Sequence("case", 0)))
+      when(caseRepository.insert(c1)).thenReturn(successful(c1Saved))
+      when(c1.sampleStatus).thenReturn(Some(SampleStatus.AWAITING))
+
+      await(service.insert(c1))
+      verify(eventService).insert(any[Event])
+    }
+
+    "not call eventService with new event if no samplestatus was set" in {
+      when(sequenceRepository.incrementAndGetByName("case")).thenReturn(successful(Sequence("case", 0)))
+      when(caseRepository.insert(c1)).thenReturn(successful(c1Saved))
+      when(c1.sampleStatus).thenReturn(None)
+
+      await(service.insert(c1))
+      verifyZeroInteractions(eventService)
     }
 
     "propagate any error" in {
